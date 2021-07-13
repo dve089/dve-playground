@@ -8,7 +8,7 @@ on:
   # Depend on another workflow
   workflow_run:
     workflows: ["CI"]
-    branches: [master, develop]
+    branches: [main, develop]
     types:
       - completed
 
@@ -26,7 +26,7 @@ jobs:
           if [ $GITHUB_REF == "refs/heads/develop" ]; then
             echo "::set-output name=matrix::{\"include\":[{\"cluster\":\"core-dev-west-1\",\"environment\":\"dev\"}]}"
           fi
-          if [ "$GITHUB_REF" == "refs/heads/master" ]; then
+          if [ "$GITHUB_REF" == "refs/heads/main" ]; then
             echo "::set-output name=matrix::{\"include\":[{\"cluster\":\"core-prod-west-1\",\"environment\":\"prod\"}]}"
           fi
   deploy:
@@ -63,7 +63,7 @@ jobs:
           # kubectl config set-context default --cluster=default --user=default;
           # kubectl config use-context default;
       - name: Deploy to cluster ${{ matrix.cluster }} and env ${{ matrix.environment }}
-        if: github.ref == 'refs/heads/master' ||  github.ref == 'refs/heads/develop'
+        if: github.ref == 'refs/heads/main' ||  github.ref == 'refs/heads/develop'
         run: |
           echo Hello
           # make k8s_deploy -e ENV=${{ matrix.environment }}
