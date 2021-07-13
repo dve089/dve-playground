@@ -1,0 +1,69 @@
+# This is a basic workflow to help you get started with Actions
+
+name: Deploy
+
+# Controls when the action will run.
+on:
+  workflow_dispatch:
+  # Depend on another workflow
+  workflow_run:
+    workflows: ["CI"]
+    branches: [master, develop]
+    types:
+      - completed
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  set-clusters:
+    runs-on: ubuntu-20.04
+    # from https://stackoverflow.com/questions/59977364/github-actions-how-use-strategy-matrix-with-script
+    # for parallel execution of x items
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [ $GITHUB_REF == "refs/heads/develop" ]; then
+            echo "::set-output name=matrix::{\"include\":[{\"cluster\":\"core-dev-west-1\",\"environment\":\"dev\"}]}"
+          fi
+          if [ "$GITHUB_REF" == "refs/heads/master" ]; then
+            echo "::set-output name=matrix::{\"include\":[{\"cluster\":\"core-prod-west-1\",\"environment\":\"prod\"}]}"
+          fi
+  deploy:
+    needs: set-clusters
+    timeout-minutes: 10
+    name: deploy
+    runs-on: ubuntu-20.04
+    strategy:
+      matrix: ${{fromJson(needs.set-clusters.outputs.matrix)}}
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Import Secrets
+        uses: hashicorp/vault-action@v2.0.1
+        id: k8ssecrets
+        with:
+          url: https://vault.maersk-digital.net
+          tlsSkipVerify: false
+          exportEnv: false
+          method: product-approle
+          authPayLoad: "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_ROLE_SECRET_ID }}\"}"
+          secrets: |
+            thorin-kv/data/kubernetes/${{ matrix.cluster }}/cert cert;
+            thorin-kv/data/kubernetes/${{ matrix.cluster }}/token token;
+            thorin-kv/data/kubernetes/${{ matrix.cluster }}/server server;
+      - name: set kubernetes cluster context for ${{ matrix.cluster }}
+        run: |
+          echo ${{ steps.k8ssecrets.outputs.token }}
+          # kubectl config set-credentials default --token=${{ steps.k8ssecrets.outputs.token }};
+          # echo ${{ steps.k8ssecrets.outputs.cert }} | base64 -d > ./kubectl-ca.crt;
+          # kubectl config set-cluster default --server=${{ steps.k8ssecrets.outputs.server }} --certificate-authority=./kubectl-ca.crt;
+          # kubectl config set-context default --cluster=default --user=default;
+          # kubectl config use-context default;
+      - name: Deploy to cluster ${{ matrix.cluster }} and env ${{ matrix.environment }}
+        if: github.ref == 'refs/heads/master' ||  github.ref == 'refs/heads/develop'
+        run: |
+          echo Hello
+          # make k8s_deploy -e ENV=${{ matrix.environment }}
