@@ -48,8 +48,9 @@ jobs:
           url: https://vault.maersk-digital.net
           tlsSkipVerify: false
           exportEnv: false
-          method: product-approle
-          authPayLoad: "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_ROLE_SECRET_ID }}\"}"
+          method: approle
+          roleId: ${{ secrets.VAULT_ROLE_ID }}
+          secretId: ${{ secrets.VAULT_ROLE_SECRET_ID }}
           secrets: |
             alice-kv/data/kubernetes/${{ matrix.cluster }}/cert cert;
             alice-kv/data/kubernetes/${{ matrix.cluster }}/token token;
