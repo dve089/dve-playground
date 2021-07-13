@@ -51,9 +51,9 @@ jobs:
           method: product-approle
           authPayLoad: "{\"role_id\":\"${{ secrets.VAULT_ROLE_ID }}\",\"secret_id\":\"${{ secrets.VAULT_ROLE_SECRET_ID }}\"}"
           secrets: |
-            thorin-kv/data/kubernetes/${{ matrix.cluster }}/cert cert;
-            thorin-kv/data/kubernetes/${{ matrix.cluster }}/token token;
-            thorin-kv/data/kubernetes/${{ matrix.cluster }}/server server;
+            alice-kv/data/kubernetes/${{ matrix.cluster }}/cert cert;
+            alice-kv/data/kubernetes/${{ matrix.cluster }}/token token;
+            alice-kv/data/kubernetes/${{ matrix.cluster }}/server server;
       - name: set kubernetes cluster context for ${{ matrix.cluster }}
         run: |
           echo ${{ steps.k8ssecrets.outputs.token }}
